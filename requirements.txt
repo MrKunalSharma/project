@@ -1,4 +1,5 @@
-fastapi
-uvicorn
-numpy
-pydantic
+fastapi==0.68.1
+uvicorn==0.15.0
+numpy==1.19.5
+pydantic==1.8.2
+python-dateutil==2.8.2
