@@ -176,28 +176,47 @@ async def optimize_network(conditions: NetworkConditions):
             test_conditions['bandwidth'] = float(bw)
             test_analysis = analyze_network(NetworkConditions(**test_conditions))
             
+            # Get video recommendations for this bandwidth
+            video_rec = get_video_recommendations(NetworkConditions(**test_conditions), test_analysis.network_score)
+            
             optimization_steps.append({
                 "bandwidth": float(bw),
                 "predicted_score": float(test_analysis.network_score),
-                "congestion_level": test_analysis.congestion_level
+                "congestion_level": test_analysis.congestion_level,
+                "video_quality": video_rec
             })
         
         optimal_step = max(optimization_steps, key=lambda x: x['predicted_score'])
         
+        # Calculate congestion reduction
+        initial_congestion = 100 - analysis.network_score
+        optimal_congestion = 100 - optimal_step['predicted_score']
+        congestion_reduction = initial_congestion - optimal_congestion
+        
         return {
             "timestamp": datetime.now().isoformat(),
-            "current_conditions": conditions.dict(),
-            "current_performance": {
-                "network_score": analysis.network_score,
-                "congestion_level": analysis.congestion_level
+            "current_conditions": {
+                "bandwidth": conditions.bandwidth,
+                "throughput": conditions.throughput,
+                "packet_loss": conditions.packet_loss,
+                "latency": conditions.latency,
+                "jitter": conditions.jitter,
+                "current_congestion": f"{initial_congestion:.1f}%",
+                "current_score": analysis.network_score
             },
-            "optimization_steps": optimization_steps,
             "optimal_configuration": {
                 "bandwidth": optimal_step['bandwidth'],
                 "predicted_score": optimal_step['predicted_score'],
                 "predicted_congestion": optimal_step['congestion_level'],
-                "improvement": f"{(optimal_step['predicted_score'] - analysis.network_score):.1f}%"
+                "congestion_reduction": f"{congestion_reduction:.1f}%",
+                "video_quality": optimal_step['video_quality'],
+                "performance_metrics": {
+                    "bandwidth_improvement": f"{((optimal_step['bandwidth']/conditions.bandwidth - 1) * 100):.1f}%",
+                    "quality_improvement": f"{(optimal_step['predicted_score'] - analysis.network_score):.1f}%",
+                    "network_efficiency": f"{(optimal_step['predicted_score']/optimal_step['bandwidth']):.1f} score/Mbps"
+                }
             },
+            "step_by_step_optimization": optimization_steps,
             "recommendations": analysis.recommendations,
             "status": "success"
         }
